@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ポケモン風ゲーム</title>
+<style>
+body {
+  font-family: Arial;
+  background: #222;
+  color: white;
+  text-align: center;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+#game {
+  margin-top: 30px;
+}
+
+.card {
+  border: 2px solid white;
+  border-radius: 10px;
+  padding: 15px;
+  display: inline-block;
+  margin: 10px;
+  width: 200px;
+}
+
+.hp {
+  color: lightgreen;
+}
+
+.log {
+  margin-top: 20px;
+  height: 120px;
+  overflow-y: auto;
+  border: 1px solid white;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⚡ ポケモン風バトルゲーム ⚡</h1>
+
+<button onclick="gacha()">モンスターをゲット！</button>
+<button onclick="startBattle()">バトル開始</button>
+
+<div id="game"></div>
+
+<div class="log" id="log"></div>
+
+<script>
+let player = null;
+let enemy = null;
+
+const monsters = [
+  {name:"ファイヤドラゴン", hp:120, atk:30},
+  {name:"ウォーターリザード", hp:100, atk:25},
+  {name:"サンダービースト", hp:90, atk:35},
+  {name:"リーフキャット", hp:80, atk:20}
+];
+
+function log(text) {
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML += text + "<br>";
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function gacha() {
+  const m = monsters[Math.floor(Math.random()*monsters.length)];
+  player = {...m};
+  log("👉 " + player.name + " をゲット！");
+}
+
+function startBattle() {
+  if (!player) {
+    alert("先にガチャ引け！");
+    return;
+  }
+
+  enemy = {...monsters[Math.floor(Math.random()*monsters.length)]};
+
+  log("🔥 バトル開始！");
+  log("敵：" + enemy.name);
+
+  render();
+}
+
+function attack() {
+  if (!enemy) return;
+
+  enemy.hp -= player.atk;
+  log("💥 " + player.name + "の攻撃！ -" + player.atk);
+
+  if (enemy.hp <= 0) {
+    log("🎉 勝利！");
+    enemy = null;
+    render();
+    return;
+  }
+
+  player.hp -= enemy.atk;
+  log("⚡ 敵の攻撃！ -" + enemy.atk);
+
+  if (player.hp <= 0) {
+    log("💀 敗北...");
+    player = null;
+    enemy = null;
+  }
+
+  render();
+}
+
+function render() {
+  let html = "";
+
+  if (player) {
+    html += `
+      <div class="card">
+        <h3>あなた</h3>
+        ${player.name}<br>
+        <div class="hp">HP: ${player.hp}</div>
+        ATK: ${player.atk}
+      </div>
+    `;
+  }
+
+  if (enemy) {
+    html += `
+      <div class="card">
+        <h3>敵</h3>
+        ${enemy.name}<br>
+        <div class="hp">HP: ${enemy.hp}</div>
+        ATK: ${enemy.atk}
+      </div>
+    `;
+  }
+
+  if (enemy) {
+    html += `<br><button onclick="attack()">攻撃</button>`;
+  }
+
+  document.getElementById("game").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
