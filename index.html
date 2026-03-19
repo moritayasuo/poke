@@ -2,155 +2,149 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ポケモン風ゲーム</title>
+<title>勇者の風格</title>
 <style>
 body {
-  font-family: Arial;
-  background: #222;
+  margin: 0;
+  background: black;
   color: white;
   text-align: center;
+  font-family: Arial;
 }
 
-button {
-  padding: 10px 20px;
-  margin: 10px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-#game {
-  margin-top: 30px;
-}
-
-.card {
+canvas {
+  background: #111;
+  display: block;
+  margin: auto;
   border: 2px solid white;
-  border-radius: 10px;
-  padding: 15px;
-  display: inline-block;
-  margin: 10px;
-  width: 200px;
 }
 
-.hp {
-  color: lightgreen;
-}
-
-.log {
-  margin-top: 20px;
+#log {
   height: 120px;
   overflow-y: auto;
   border: 1px solid white;
-  padding: 10px;
+  margin: 10px;
+  padding: 5px;
 }
 </style>
 </head>
-
 <body>
 
-<h1>⚡ ポケモン風バトルゲーム ⚡</h1>
+<h1>⚔️ 勇者の風格 ⚔️</h1>
+<p>WASDで移動 / 敵に触れると戦闘</p>
 
-<button onclick="gacha()">モンスターをゲット！</button>
-<button onclick="startBattle()">バトル開始</button>
+<canvas id="game" width="400" height="400"></canvas>
 
-<div id="game"></div>
-
-<div class="log" id="log"></div>
+<div id="log"></div>
 
 <script>
-let player = null;
-let enemy = null;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const monsters = [
-  {name:"ファイヤドラゴン", hp:120, atk:30},
-  {name:"ウォーターリザード", hp:100, atk:25},
-  {name:"サンダービースト", hp:90, atk:35},
-  {name:"リーフキャット", hp:80, atk:20}
+let player = {x:200, y:200, hp:120, atk:25};
+
+const enemies = [
+  {name:"終焉ノ黒龍ヴァルザード", x:50, y:50, hp:80, atk:20},
+  {name:"虚無ヲ喰ラウ影王ゼルヴァ", x:300, y:100, hp:70, atk:22},
+  {name:"禁忌ノ堕天使ルシフェリオン", x:100, y:300, hp:90, atk:18}
 ];
 
-function log(text) {
-  const logDiv = document.getElementById("log");
-  logDiv.innerHTML += text + "<br>";
-  logDiv.scrollTop = logDiv.scrollHeight;
+let currentEnemy = null;
+
+function log(text){
+  const div = document.getElementById("log");
+  div.innerHTML += text + "<br>";
+  div.scrollTop = div.scrollHeight;
 }
 
-function gacha() {
-  const m = monsters[Math.floor(Math.random()*monsters.length)];
-  player = {...m};
-  log("👉 " + player.name + " をゲット！");
+function drawPlayer(){
+  ctx.fillStyle = "cyan";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 10, 0, Math.PI*2);
+  ctx.fill();
+
+  // 顔っぽいイラスト
+  ctx.fillStyle = "white";
+  ctx.fillRect(player.x-3, player.y-3, 2, 2);
+  ctx.fillRect(player.x+1, player.y-3, 2, 2);
 }
 
-function startBattle() {
-  if (!player) {
-    alert("先にガチャ引け！");
-    return;
-  }
+function drawEnemy(e){
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.rect(e.x-10, e.y-10, 20, 20);
+  ctx.fill();
 
-  enemy = {...monsters[Math.floor(Math.random()*monsters.length)]};
-
-  log("🔥 バトル開始！");
-  log("敵：" + enemy.name);
-
-  render();
+  // 厨二っぽい目
+  ctx.fillStyle = "black";
+  ctx.fillRect(e.x-5, e.y-5, 3, 3);
 }
 
-function attack() {
-  if (!enemy) return;
+function draw(){
+  ctx.clearRect(0,0,400,400);
 
-  enemy.hp -= player.atk;
-  log("💥 " + player.name + "の攻撃！ -" + player.atk);
+  drawPlayer();
 
-  if (enemy.hp <= 0) {
-    log("🎉 勝利！");
-    enemy = null;
-    render();
-    return;
-  }
-
-  player.hp -= enemy.atk;
-  log("⚡ 敵の攻撃！ -" + enemy.atk);
-
-  if (player.hp <= 0) {
-    log("💀 敗北...");
-    player = null;
-    enemy = null;
-  }
-
-  render();
+  enemies.forEach(e => {
+    if(e.hp > 0) drawEnemy(e);
+  });
 }
 
-function render() {
-  let html = "";
+function checkCollision(){
+  enemies.forEach(e=>{
+    if(e.hp > 0){
+      let dx = player.x - e.x;
+      let dy = player.y - e.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
 
-  if (player) {
-    html += `
-      <div class="card">
-        <h3>あなた</h3>
-        ${player.name}<br>
-        <div class="hp">HP: ${player.hp}</div>
-        ATK: ${player.atk}
-      </div>
-    `;
-  }
-
-  if (enemy) {
-    html += `
-      <div class="card">
-        <h3>敵</h3>
-        ${enemy.name}<br>
-        <div class="hp">HP: ${enemy.hp}</div>
-        ATK: ${enemy.atk}
-      </div>
-    `;
-  }
-
-  if (enemy) {
-    html += `<br><button onclick="attack()">攻撃</button>`;
-  }
-
-  document.getElementById("game").innerHTML = html;
+      if(dist < 20){
+        battle(e);
+      }
+    }
+  });
 }
+
+function battle(e){
+  if(currentEnemy) return;
+
+  currentEnemy = e;
+  log("🔥 " + e.name + " 出現！");
+  
+  let interval = setInterval(()=>{
+    e.hp -= player.atk;
+    log("⚔️ 攻撃！ -" + player.atk);
+
+    if(e.hp <= 0){
+      log("💥 撃破！");
+      currentEnemy = null;
+      clearInterval(interval);
+      return;
+    }
+
+    player.hp -= e.atk;
+    log("💀 被ダメ -" + e.atk);
+
+    if(player.hp <= 0){
+      log("☠️ GAME OVER");
+      clearInterval(interval);
+    }
+
+  }, 1000);
+}
+
+document.addEventListener("keydown", e=>{
+  if(currentEnemy) return;
+
+  if(e.key === "w") player.y -= 10;
+  if(e.key === "s") player.y += 10;
+  if(e.key === "a") player.x -= 10;
+  if(e.key === "d") player.x += 10;
+
+  draw();
+  checkCollision();
+});
+
+draw();
 </script>
 
 </body>
