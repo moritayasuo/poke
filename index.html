@@ -31,7 +31,7 @@ canvas {
 <body>
 
 <h1>⚔️ 勇者の風格 ⚔️</h1>
-<p>WASDで移動 / 敵に触れると戦闘</p>
+<p>⬅️➡️⬆️⬇️で移動 / 敵に触れると戦闘</p>
 
 <canvas id="game" width="400" height="400"></canvas>
 
@@ -57,27 +57,74 @@ function log(text){
   div.scrollTop = div.scrollHeight;
 }
 
+// 🧍 人っぽい主人公
 function drawPlayer(){
-  ctx.fillStyle = "cyan";
+  // 頭
+  ctx.fillStyle = "#ffe0bd";
   ctx.beginPath();
-  ctx.arc(player.x, player.y, 10, 0, Math.PI*2);
+  ctx.arc(player.x, player.y-10, 6, 0, Math.PI*2);
   ctx.fill();
 
-  // 顔っぽいイラスト
-  ctx.fillStyle = "white";
-  ctx.fillRect(player.x-3, player.y-3, 2, 2);
-  ctx.fillRect(player.x+1, player.y-3, 2, 2);
+  // 体
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y-4);
+  ctx.lineTo(player.x, player.y+10);
+  ctx.stroke();
+
+  // 手
+  ctx.beginPath();
+  ctx.moveTo(player.x-6, player.y+2);
+  ctx.lineTo(player.x+6, player.y+2);
+  ctx.stroke();
+
+  // 足
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y+10);
+  ctx.lineTo(player.x-5, player.y+18);
+  ctx.moveTo(player.x, player.y+10);
+  ctx.lineTo(player.x+5, player.y+18);
+  ctx.stroke();
+
+  // 剣
+  ctx.strokeStyle = "cyan";
+  ctx.beginPath();
+  ctx.moveTo(player.x+6, player.y);
+  ctx.lineTo(player.x+12, player.y-6);
+  ctx.stroke();
 }
 
+// 👹 モンスター（翼＋目＋角）
 function drawEnemy(e){
-  ctx.fillStyle = "red";
+  // 本体
+  ctx.fillStyle = "darkred";
   ctx.beginPath();
-  ctx.rect(e.x-10, e.y-10, 20, 20);
+  ctx.arc(e.x, e.y, 10, 0, Math.PI*2);
   ctx.fill();
 
-  // 厨二っぽい目
-  ctx.fillStyle = "black";
-  ctx.fillRect(e.x-5, e.y-5, 3, 3);
+  // 目
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.arc(e.x-3, e.y-2, 2, 0, Math.PI*2);
+  ctx.arc(e.x+3, e.y-2, 2, 0, Math.PI*2);
+  ctx.fill();
+
+  // 角
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(e.x-5, e.y-8);
+  ctx.lineTo(e.x-8, e.y-15);
+  ctx.moveTo(e.x+5, e.y-8);
+  ctx.lineTo(e.x+8, e.y-15);
+  ctx.stroke();
+
+  // 翼
+  ctx.beginPath();
+  ctx.moveTo(e.x-10, e.y);
+  ctx.lineTo(e.x-20, e.y+5);
+  ctx.moveTo(e.x+10, e.y);
+  ctx.lineTo(e.x+20, e.y+5);
+  ctx.stroke();
 }
 
 function draw(){
@@ -132,13 +179,14 @@ function battle(e){
   }, 1000);
 }
 
+// ⬅️➡️⬆️⬇️対応
 document.addEventListener("keydown", e=>{
   if(currentEnemy) return;
 
-  if(e.key === "w") player.y -= 10;
-  if(e.key === "s") player.y += 10;
-  if(e.key === "a") player.x -= 10;
-  if(e.key === "d") player.x += 10;
+  if(e.key === "ArrowUp") player.y -= 10;
+  if(e.key === "ArrowDown") player.y += 10;
+  if(e.key === "ArrowLeft") player.x -= 10;
+  if(e.key === "ArrowRight") player.x += 10;
 
   draw();
   checkCollision();
