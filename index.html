@@ -34,15 +34,30 @@ h1 { margin: 10px; }
   cursor: pointer;
 }
 
+/* 🔴 赤モグラ */
 .mole {
   width: 70px;
   height: 70px;
-  background: brown;
+  background: red;
   border-radius: 50%;
   position: absolute;
   bottom: 0;
   left: 10px;
+  box-shadow: 0 0 10px darkred;
 }
+
+/* 👀 目 */
+.mole::before, .mole::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  top: 20px;
+}
+.mole::before { left: 15px; }
+.mole::after { right: 15px; }
 
 .hit {
   background: red !important;
@@ -56,7 +71,9 @@ h1 { margin: 10px; }
 <div id="score">Score: 0</div>
 <div id="time">Time: 30</div>
 <div id="best">Best: 0</div>
+
 <button onclick="startGame()">スタート</button>
+<button onclick="restartGame()">再スタート</button>
 
 <div class="grid" id="grid"></div>
 
@@ -107,19 +124,11 @@ function updateScore(){
   document.getElementById("score").innerText="Score: "+score;
 }
 
-// ゲーム開始
+// 🎮 ゲーム開始
 function startGame(){
-  score = 0;
-  time = 30;
-  updateScore();
-  document.getElementById("time").innerText="Time: "+time;
+  resetAll();
 
-  clearInterval(gameInterval);
-  clearInterval(timerInterval);
-
-  gameInterval = setInterval(()=>{
-    showMole();
-  }, 800);
+  gameInterval = setInterval(showMole, 800);
 
   timerInterval = setInterval(()=>{
     time--;
@@ -135,6 +144,22 @@ function startGame(){
       endGame();
     }
   },1000);
+}
+
+// 🔁 再スタート（再集計）
+function restartGame(){
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  resetAll();
+}
+
+// 🔄 初期化
+function resetAll(){
+  score = 0;
+  time = 30;
+  updateScore();
+  document.getElementById("time").innerText="Time: "+time;
+  holes.forEach(h=>h.innerHTML="");
 }
 
 // 終了
