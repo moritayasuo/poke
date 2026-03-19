@@ -4,72 +4,90 @@
 <meta charset="UTF-8">
 <title>勇者の風格</title>
 <style>
-body { background:black; color:white; text-align:center; }
-canvas { border:2px solid white; background:#111; }
+body { margin:0; background:black; color:white; font-family:sans-serif; }
+canvas { display:block; margin:auto; border:2px solid white; background:#111; }
 
-#ui { position:fixed; bottom:0; width:100%; background:#222; padding:10px; }
-button { margin:5px; padding:10px; }
+#battleUI {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: #eee;
+  color: black;
+  display: none;
+}
 
-.hpbar { width:150px; height:10px; background:gray; }
-.hp { height:100%; background:lime; }
+#text {
+  height: 80px;
+  padding: 10px;
+  border-top: 2px solid black;
+}
+
+#commands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+button {
+  padding: 15px;
+  font-size: 16px;
+  border: 1px solid black;
+  background: white;
+}
+
+.hpbar {
+  width: 120px;
+  height: 10px;
+  background: gray;
+}
+.hp { height:100%; background:green; }
 </style>
 </head>
 
 <body>
 
-<h1>⚔️ 勇者の風格 ⚔️</h1>
 <canvas id="game" width="400" height="400"></canvas>
 
-<div id="battleUI" style="display:none;">
-敵：<span id="enemyName"></span>
-<div class="hpbar"><div id="enemyHP" class="hp"></div></div>
+<div id="battleUI">
+  <div style="display:flex; justify-content:space-between; padding:10px;">
+    <div>
+      <div id="enemyName"></div>
+      <div class="hpbar"><div id="enemyHP" class="hp"></div></div>
+    </div>
+    <div>
+      <div id="playerName"></div>
+      <div class="hpbar"><div id="playerHP" class="hp"></div></div>
+    </div>
+  </div>
 
-味方：<span id="playerName"></span>
-<div class="hpbar"><div id="playerHP" class="hp"></div></div>
+  <div id="text">野生のモンスターが現れた！</div>
+  <div id="commands"></div>
 </div>
 
-<div id="ui"></div>
-
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 let mode="field";
+let player={x:200,y:200};
 
-// ===== セーブ =====
-function save(){
-  localStorage.setItem("save", JSON.stringify({player,party}));
-}
-function load(){
-  let s=localStorage.getItem("save");
-  if(s){
-    let d=JSON.parse(s);
-    player=d.player;
-    party=d.party;
-  }
-}
-
-// ===== モンスター =====
 function createMonster(name,type){
   return {
     name,type,level:1,exp:0,
     hp:100,maxHp:100,atk:20,
     skills:[
-      {name:"斬撃",type:"normal",power:20},
-      {name:"炎撃",type:"fire",power:25},
-      {name:"水流",type:"water",power:25},
-      {name:"草刃",type:"grass",power:25}
+      {name:"斬撃",power:20,type:"normal"},
+      {name:"炎撃",power:25,type:"fire"},
+      {name:"水流",power:25,type:"water"},
+      {name:"草刃",power:25,type:"grass"}
     ]
   };
 }
 
 let party=[createMonster("蒼炎ノ騎士ドラグレイヴ","fire")];
-
-let player={x:200,y:200};
-
+let current=0;
 let enemy;
 
-// ===== マップ =====
+// ===== 描画 =====
 function draw(){
   ctx.clearRect(0,0,400,400);
 
@@ -93,28 +111,38 @@ function encounter(){
 // ===== 戦闘 =====
 function startBattle(){
   mode="battle";
-  enemy=createMonster("黒龍","fire");
+  enemy=createMonster("終焉ノ黒龍","fire");
 
   document.getElementById("battleUI").style.display="block";
-  showCommands();
-  updateHP();
+
+  updateUI();
+  showMain();
 }
 
 // ===== UI =====
-function showCommands(){
-  document.getElementById("ui").innerHTML=`
+function showMain(){
+  document.getElementById("commands").innerHTML=`
     <button onclick="fight()">たたかう</button>
+    <button onclick="change()">ポケモン</button>
     <button onclick="catchM()">つかまえる</button>
-    <button onclick="save()">セーブ</button>
+    <button onclick="run()">にげる</button>
   `;
 }
 
 function fight(){
   let html="";
-  party[0].skills.forEach((s,i)=>{
+  party[current].skills.forEach((s,i)=>{
     html+=`<button onclick="attack(${i})">${s.name}</button>`;
   });
-  document.getElementById("ui").innerHTML=html;
+  document.getElementById("commands").innerHTML=html;
+}
+
+function change(){
+  let html="";
+  party.forEach((p,i)=>{
+    html+=`<button onclick="switchMon(${i})">${p.name}</button>`;
+  });
+  document.getElementById("commands").innerHTML=html;
 }
 
 // ===== 相性 =====
@@ -127,7 +155,7 @@ function mult(a,b){
 
 // ===== 攻撃 =====
 function attack(i){
-  let p=party[0];
+  let p=party[current];
   let s=p.skills[i];
 
   enemy.hp-=s.power*mult(s.type,enemy.type);
@@ -141,20 +169,32 @@ function attack(i){
   p.hp-=enemy.atk;
 
   if(p.hp<=0){
-    alert("負け");
-    location.reload();
+    document.getElementById("text").innerText="たおれた！";
   }
 
-  updateHP();
+  updateUI();
 }
 
 // ===== 捕獲 =====
 function catchM(){
   if(Math.random()<0.4){
     party.push(createMonster(enemy.name,enemy.type));
-    alert("捕獲成功");
+    document.getElementById("text").innerText="捕獲成功！";
     end();
-  } else alert("失敗");
+  } else {
+    document.getElementById("text").innerText="失敗…";
+  }
+}
+
+// ===== 逃げる =====
+function run(){
+  end();
+}
+
+// ===== 切替 =====
+function switchMon(i){
+  current=i;
+  showMain();
 }
 
 // ===== 経験値 =====
@@ -166,24 +206,22 @@ function gain(p){
     p.maxHp+=20;
     p.hp=p.maxHp;
     p.atk+=5;
-    alert("レベルアップ");
   }
 }
 
-// ===== 更新 =====
-function updateHP(){
+// ===== UI更新 =====
+function updateUI(){
   document.getElementById("enemyName").innerText=enemy.name;
-  document.getElementById("playerName").innerText=party[0].name;
+  document.getElementById("playerName").innerText=party[current].name;
 
   document.getElementById("enemyHP").style.width=(enemy.hp/enemy.maxHp*100)+"%";
-  document.getElementById("playerHP").style.width=(party[0].hp/party[0].maxHp*100)+"%";
+  document.getElementById("playerHP").style.width=(party[current].hp/party[current].maxHp*100)+"%";
 }
 
 // ===== 終了 =====
 function end(){
   mode="field";
   document.getElementById("battleUI").style.display="none";
-  document.getElementById("ui").innerHTML="";
   draw();
 }
 
@@ -200,7 +238,6 @@ document.addEventListener("keydown",e=>{
   draw();
 });
 
-load();
 draw();
 </script>
 </body>
