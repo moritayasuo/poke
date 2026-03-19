@@ -13,186 +13,174 @@ body {
 }
 
 canvas {
-  background: #111;
   display: block;
   margin: auto;
   border: 2px solid white;
+  background: #111;
 }
 
-#log {
-  height: 120px;
-  overflow-y: auto;
-  border: 1px solid white;
-  margin: 10px;
-  padding: 5px;
+#battle {
+  display: none;
+  padding: 20px;
+}
+
+.hpbar {
+  width: 200px;
+  height: 20px;
+  background: gray;
+  margin: 5px auto;
+}
+
+.hp {
+  height: 100%;
+  background: lime;
+}
+
+button {
+  padding: 10px 20px;
+  margin-top: 10px;
 }
 </style>
 </head>
+
 <body>
 
 <h1>⚔️ 勇者の風格 ⚔️</h1>
-<p>⬅️➡️⬆️⬇️で移動 / 敵に触れると戦闘</p>
 
-<canvas id="game" width="400" height="400"></canvas>
+<canvas id="field" width="400" height="400"></canvas>
 
-<div id="log"></div>
+<div id="battle">
+  <h2>⚡ バトル！</h2>
+
+  <div>
+    👹 敵：<span id="enemyName"></span>
+    <div class="hpbar"><div id="enemyHP" class="hp"></div></div>
+  </div>
+
+  <br>
+
+  <div>
+    🐾 味方：<span id="playerName"></span>
+    <div class="hpbar"><div id="playerHP" class="hp"></div></div>
+  </div>
+
+  <button onclick="attack()">こうげき</button>
+</div>
 
 <script>
-const canvas = document.getElementById("game");
+const canvas = document.getElementById("field");
 const ctx = canvas.getContext("2d");
 
-let player = {x:200, y:200, hp:120, atk:25};
+let mode = "field";
+
+let player = {x:200, y:200};
+
+let myMonster = {
+  name:"蒼炎ノ騎士ドラグレイヴ",
+  hp:120,
+  maxHp:120,
+  atk:25
+};
 
 const enemies = [
-  {name:"終焉ノ黒龍ヴァルザード", x:50, y:50, hp:80, atk:20},
-  {name:"虚無ヲ喰ラウ影王ゼルヴァ", x:300, y:100, hp:70, atk:22},
-  {name:"禁忌ノ堕天使ルシフェリオン", x:100, y:300, hp:90, atk:18}
+  {name:"終焉ノ黒龍ヴァルザード", x:50, y:50, hp:100, maxHp:100, atk:20},
+  {name:"虚無ノ影王ゼルヴァ", x:300, y:100, hp:90, maxHp:90, atk:22}
 ];
 
-let currentEnemy = null;
+let enemy = null;
 
-function log(text){
-  const div = document.getElementById("log");
-  div.innerHTML += text + "<br>";
-  div.scrollTop = div.scrollHeight;
-}
-
-// 🧍 人っぽい主人公
-function drawPlayer(){
-  // 頭
-  ctx.fillStyle = "#ffe0bd";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y-10, 6, 0, Math.PI*2);
-  ctx.fill();
-
-  // 体
-  ctx.strokeStyle = "white";
-  ctx.beginPath();
-  ctx.moveTo(player.x, player.y-4);
-  ctx.lineTo(player.x, player.y+10);
-  ctx.stroke();
-
-  // 手
-  ctx.beginPath();
-  ctx.moveTo(player.x-6, player.y+2);
-  ctx.lineTo(player.x+6, player.y+2);
-  ctx.stroke();
-
-  // 足
-  ctx.beginPath();
-  ctx.moveTo(player.x, player.y+10);
-  ctx.lineTo(player.x-5, player.y+18);
-  ctx.moveTo(player.x, player.y+10);
-  ctx.lineTo(player.x+5, player.y+18);
-  ctx.stroke();
-
-  // 剣
-  ctx.strokeStyle = "cyan";
-  ctx.beginPath();
-  ctx.moveTo(player.x+6, player.y);
-  ctx.lineTo(player.x+12, player.y-6);
-  ctx.stroke();
-}
-
-// 👹 モンスター（翼＋目＋角）
-function drawEnemy(e){
-  // 本体
-  ctx.fillStyle = "darkred";
-  ctx.beginPath();
-  ctx.arc(e.x, e.y, 10, 0, Math.PI*2);
-  ctx.fill();
-
-  // 目
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.arc(e.x-3, e.y-2, 2, 0, Math.PI*2);
-  ctx.arc(e.x+3, e.y-2, 2, 0, Math.PI*2);
-  ctx.fill();
-
-  // 角
-  ctx.strokeStyle = "white";
-  ctx.beginPath();
-  ctx.moveTo(e.x-5, e.y-8);
-  ctx.lineTo(e.x-8, e.y-15);
-  ctx.moveTo(e.x+5, e.y-8);
-  ctx.lineTo(e.x+8, e.y-15);
-  ctx.stroke();
-
-  // 翼
-  ctx.beginPath();
-  ctx.moveTo(e.x-10, e.y);
-  ctx.lineTo(e.x-20, e.y+5);
-  ctx.moveTo(e.x+10, e.y);
-  ctx.lineTo(e.x+20, e.y+5);
-  ctx.stroke();
-}
-
-function draw(){
+// フィールド描画
+function drawField(){
   ctx.clearRect(0,0,400,400);
 
-  drawPlayer();
+  // プレイヤー
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x-5, player.y-5, 10, 10);
 
-  enemies.forEach(e => {
-    if(e.hp > 0) drawEnemy(e);
-  });
-}
-
-function checkCollision(){
+  // 敵
+  ctx.fillStyle = "red";
   enemies.forEach(e=>{
     if(e.hp > 0){
-      let dx = player.x - e.x;
-      let dy = player.y - e.y;
-      let dist = Math.sqrt(dx*dx + dy*dy);
-
-      if(dist < 20){
-        battle(e);
-      }
+      ctx.fillRect(e.x-5, e.y-5, 10, 10);
     }
   });
 }
 
-function battle(e){
-  if(currentEnemy) return;
-
-  currentEnemy = e;
-  log("🔥 " + e.name + " 出現！");
-  
-  let interval = setInterval(()=>{
-    e.hp -= player.atk;
-    log("⚔️ 攻撃！ -" + player.atk);
-
-    if(e.hp <= 0){
-      log("💥 撃破！");
-      currentEnemy = null;
-      clearInterval(interval);
-      return;
+// 衝突
+function checkCollision(){
+  enemies.forEach(e=>{
+    let dx = player.x - e.x;
+    let dy = player.y - e.y;
+    if(Math.sqrt(dx*dx+dy*dy)<10 && e.hp>0){
+      startBattle(e);
     }
-
-    player.hp -= e.atk;
-    log("💀 被ダメ -" + e.atk);
-
-    if(player.hp <= 0){
-      log("☠️ GAME OVER");
-      clearInterval(interval);
-    }
-
-  }, 1000);
+  });
 }
 
-// ⬅️➡️⬆️⬇️対応
+// 戦闘開始
+function startBattle(e){
+  mode = "battle";
+  enemy = e;
+
+  document.getElementById("battle").style.display = "block";
+  canvas.style.display = "none";
+
+  document.getElementById("enemyName").innerText = e.name;
+  document.getElementById("playerName").innerText = myMonster.name;
+
+  updateHP();
+}
+
+// HP更新
+function updateHP(){
+  document.getElementById("enemyHP").style.width =
+    (enemy.hp/enemy.maxHp*100)+"%";
+
+  document.getElementById("playerHP").style.width =
+    (myMonster.hp/myMonster.maxHp*100)+"%";
+}
+
+// 攻撃
+function attack(){
+  enemy.hp -= myMonster.atk;
+
+  if(enemy.hp <= 0){
+    alert("勝利！");
+    endBattle();
+    return;
+  }
+
+  myMonster.hp -= enemy.atk;
+
+  if(myMonster.hp <= 0){
+    alert("敗北...");
+    location.reload();
+  }
+
+  updateHP();
+}
+
+// 戦闘終了
+function endBattle(){
+  document.getElementById("battle").style.display = "none";
+  canvas.style.display = "block";
+  mode = "field";
+}
+
+// 移動（矢印キー）
 document.addEventListener("keydown", e=>{
-  if(currentEnemy) return;
+  if(mode !== "field") return;
 
-  if(e.key === "ArrowUp") player.y -= 10;
-  if(e.key === "ArrowDown") player.y += 10;
-  if(e.key === "ArrowLeft") player.x -= 10;
-  if(e.key === "ArrowRight") player.x += 10;
+  if(e.key==="ArrowUp") player.y-=10;
+  if(e.key==="ArrowDown") player.y+=10;
+  if(e.key==="ArrowLeft") player.x-=10;
+  if(e.key==="ArrowRight") player.x+=10;
 
-  draw();
+  drawField();
   checkCollision();
 });
 
-draw();
+drawField();
 </script>
 
 </body>
